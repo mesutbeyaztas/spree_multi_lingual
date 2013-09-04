@@ -1,6 +1,8 @@
 require 'spec_helper'
 
 feature "Products multi lingual", :js => true do
+  stub_authorization!
+
   background do
     I18n.stub(:available_locales).and_return [:en, :fr, :es]
   end
@@ -15,19 +17,21 @@ feature "Products multi lingual", :js => true do
 
     click_link "fr"
     fill_in "Name", :with => "Bonjour"
+
     click_button "Update"
 
-    click_link "Edit"
+    click_icon :edit
     click_link "fr"
-    page.should have_content("Bonjour")
+    find("input#taxonomy_name_fr")[:value].should == "Bonjour"
 
-    click_link "es"
+    within("h1") { click_link "es" }
+
     fill_in "Name", :with => "Hola"
     click_button "Update"
 
-    click_link "Edit"
-    click_link "es"
-    page.should have_content("Hola")
+    click_icon :edit
+    within("h1") { click_link "es" }
+    find("input#taxonomy_name_es")[:value].should == "Hola"
   end
 
   context "edit taxons" do
@@ -40,14 +44,14 @@ feature "Products multi lingual", :js => true do
 
       @taxonomy = Spree::Taxonomy.last
 
-      visit spree.edit_admin_taxonomy_taxon_path(@taxonomy, @taxonomy.root)
+      visit spree.edit_admin_taxonomy_taxon_path(@taxonomy, @taxonomy.root.id)
 
       %w(fr en es).each do |locale|
         select locale, :from => "spree_multi_lingual_dropdown"
 
         suffix = "#{locale.to_sym == I18n.locale ? "" : "_#{locale}"}"
 
-        fill_in "taxon_name#{suffix}", :with => "TAXON - #{locale}"
+        fill_in "taxon_name#{suffix}", :with => "TAXON - #{locale.upcase}"
         fill_in "taxon_description#{suffix}", :with => "TAXON Description - #{locale * 20}"
         fill_in "taxon_permalink#{suffix}", :with => "taxon-#{locale}"
       end
@@ -56,26 +60,29 @@ feature "Products multi lingual", :js => true do
     end
 
     scenario "admin should be able to edit taxons" do
-      visit spree.edit_admin_taxonomy_taxon_path(@taxonomy, @taxonomy.root)
+      visit spree.edit_admin_taxonomy_taxon_path(@taxonomy, @taxonomy.root.id)
 
       # verify if the form has correct values
       %w(fr en es).each do |locale|
         select locale, :from => "spree_multi_lingual_dropdown"
-        page.should have_content("TAXON - #{locale}")
-        page.should have_content("TAXON Description - #{locale * 20}")
+
+        suffix = "#{locale.to_sym == I18n.locale ? "" : "_#{locale}"}"
+
+        find("input#taxon_name#{suffix}")[:value].should == "TAXON - #{locale.upcase}"
+        find("textarea#taxon_description#{suffix}")[:value].should == "TAXON Description - #{locale * 20}"
       end
 
       # set local and ensure each page is visitable
       %w(fr en es).each do |locale|
         visit "/#{locale}/t/taxon-#{locale}"
-        page.should have_content "TAXON - #{locale}"
+        page.should have_content "TAXON - #{locale.upcase}"
       end
     end
 
     scenario "admin should be able to edit child taxons" do
       @parent = Spree::Taxon.last
       @child = FactoryGirl.create(:taxon, :name => "child", :parent => @parent, :taxonomy => @taxonomy)
-      visit spree.edit_admin_taxonomy_taxon_path(@taxonomy, @child)
+      visit spree.edit_admin_taxonomy_taxon_path(@taxonomy, @child.id)
 
       # verify if the form has correct values
       %w(fr en es).each do |locale|
@@ -100,7 +107,7 @@ feature "Products multi lingual", :js => true do
       @parent = Spree::Taxon.last
       @child = FactoryGirl.create(:taxon, :name => "Sinatra En", :name_fr => "Sinatra Fr", :name_es => "Sinatra Es",
       :permalink_fr => "sinatra-fr", :permalink => "sinatra-en", :permalink_es => "sinatra-es", :parent => @parent, :taxonomy => @taxonomy)
-      visit spree.edit_admin_taxonomy_taxon_path(@taxonomy, @parent)
+      visit spree.edit_admin_taxonomy_taxon_path(@taxonomy, @parent.id)
 
       %w(fr en es).each do |locale|
         select locale, :from => "spree_multi_lingual_dropdown"

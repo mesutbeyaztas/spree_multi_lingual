@@ -4,13 +4,16 @@ ENV["RAILS_ENV"] = "test"
 require File.expand_path("../dummy/config/environment.rb",  __FILE__)
 
 require 'rspec/rails'
+require 'ffaker'
+# require 'debugger'
 
 # Requires supporting ruby files with custom matchers and macros, etc,
 # in spec/support/ and its subdirectories.
 Dir[File.join(File.dirname(__FILE__), "support/**/*.rb")].each {|f| require f }
 
-# Requires factories defined in spree_core
-require 'spree/core/testing_support/factories'
+require 'spree/testing_support/factories'
+require 'spree/testing_support/authorization_helpers'
+require 'spree/testing_support/capybara_ext'
 
 RSpec.configure do |config|
   # == Mock Framework
@@ -30,6 +33,9 @@ RSpec.configure do |config|
   # instead of true.
   config.use_transactional_fixtures = true
   config.include Spree::UrlHelpers
+  config.include FactoryGirl::Syntax::Methods
+  config.include Capybara::DSL
+
   config.after(:each) do
     I18n.locale = nil
   end
